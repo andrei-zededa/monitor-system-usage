@@ -1,0 +1,56 @@
+version: 2
+
+project_name: monitor-system-usage
+
+builds:
+  - id: msu
+    main: ./cmd/msu
+    binary: msu
+    env:
+      - GOTOOLCHAIN=local
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+      - -tags
+      - 'osusergo netgo'
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.buildDate={{ .CommitDate }} -X main.builtBy=goreleaser -X main.treeState={{ .IsGitDirty }}
+    targets:
+      - linux_amd64
+      - darwin_arm64
+
+  - id: msu-collect
+    main: ./cmd/msu-collect
+    binary: msu-collect
+    env:
+      - GOTOOLCHAIN=local
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+      - -tags
+      - 'osusergo netgo'
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.buildDate={{ .CommitDate }} -X main.builtBy=goreleaser -X main.treeState={{ .IsGitDirty }}
+    targets:
+      - linux_amd64
+
+archives:
+  - id: binaries
+    builds:
+      - msu
+      - msu-collect
+    format: binary
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
+
+release:
+  draft: false
+  prerelease: auto
+  github:
+    owner: andrei-zededa
+    name: monitor-system-usage
+  extra_files:
+    - glob: ./script/monitor_system_usage.sh

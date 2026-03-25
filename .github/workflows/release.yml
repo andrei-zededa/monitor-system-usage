@@ -1,0 +1,66 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*" # Trigger on version tags.
+  # Manual trigger.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'CURRENTLY IGNORED – manual runs derive version as 0.0.0-branch+commit'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0      # Need full history for GoReleaser to calculate the Changelog.
+          fetch-tags: true    # Make sure tags are present.
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.3.0
+        with:
+          go-version: 1.26.1
+          cache: true
+
+      - run: go version
+
+      # Only on manual runs: compute 0.0.0-branch+commit and tag HEAD with it.
+      - name: Create tag for manual release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail;
+          BRANCH="${GITHUB_REF_NAME}";
+
+          # Produce a SemVer-safe prerelease identifier.
+          SAFE_BRANCH="$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^0-9A-Za-z]+//g')";
+
+          COMMIT="$(git rev-parse --short HEAD)";
+          VERSION="0.0.0-dev.branch${SAFE_BRANCH}+commit${COMMIT}";
+
+          echo "Derived VERSION: $VERSION";
+          echo "GORELEASER_CURRENT_TAG=$VERSION" >> "$GITHUB_ENV";
+
+          git config user.name "github-actions[bot]";
+          git config user.email "github-actions[bot]@users.noreply.github.com";
+          git tag -a "$VERSION" -m "Manual release from $BRANCH at $COMMIT";
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7.0.0
+        with:
+          version: v2.14.3
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
