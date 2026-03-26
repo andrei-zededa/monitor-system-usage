@@ -32,7 +32,7 @@ func (r *Reader) ReadHeader() (*Header, error) {
 func (r *Reader) Next() (*Sample, error) {
 	var s Sample
 	if err := r.dec.Decode(&s); err != nil {
-		if errors.Is(err, io.EOF) {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, nil
 		}
 		return nil, err
