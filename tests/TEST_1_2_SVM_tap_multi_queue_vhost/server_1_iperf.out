@@ -1,0 +1,29 @@
+Thu Mar 26 12:34:39 PM UTC 2026
+------------------------------------------------------------
+Server listening on UDP port 5001
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  1] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 44783
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  1] 0.0000-30.0003 sec  1.14 MBytes   320 Kbits/sec   0.004 ms 0/60003 (0%)
+[  2] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 56823
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  2] 0.0000-30.0001 sec  2.86 MBytes   800 Kbits/sec   0.009 ms 0/150003 (0%)
+[  3] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 43972
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3] 0.0000-29.9998 sec  5.72 MBytes  1.60 Mbits/sec   0.015 ms 0/300003 (0%)
+[  4] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 48494
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  4] 0.0000-29.9999 sec  11.4 MBytes  3.20 Mbits/sec   0.022 ms 0/600004 (0%)
+[  5] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 39973
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  5] 0.0000-29.9999 sec  12.8 MBytes  3.57 Mbits/sec   0.022 ms 80479/750004 (11%)
+[  6] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 57689
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  6] 0.0000-30.0221 sec  16.2 MBytes  4.52 Mbits/sec   0.029 ms 351756/1200007 (29%)
+[  7] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 39804
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  7] 0.0000-30.0001 sec  31.5 MBytes  8.80 Mbits/sec   0.027 ms 0/1650000 (0%)
+[  8] local 10.99.1.101 port 5001 connected with 10.99.2.201 port 40750
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  8] 0.0000-30.0218 sec  17.4 MBytes  4.87 Mbits/sec   0.037 ms 1185809/2100005 (56%)

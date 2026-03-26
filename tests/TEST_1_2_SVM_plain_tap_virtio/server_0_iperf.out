@@ -1,0 +1,29 @@
+Thu Mar 26 12:00:27 PM UTC 2026
+------------------------------------------------------------
+Server listening on UDP port 5001
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  1] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 45474
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  1] 0.0000-30.0001 sec  1.14 MBytes   320 Kbits/sec   0.009 ms 0/60003 (0%)
+[  2] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 59851
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  2] 0.0000-30.0002 sec  2.86 MBytes   800 Kbits/sec   0.052 ms 0/150003 (0%)
+[  3] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 44421
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3] 0.0000-29.9998 sec  5.72 MBytes  1.60 Mbits/sec   0.025 ms 0/300004 (0%)
+[  4] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 49665
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  4] 0.0000-29.9997 sec  11.4 MBytes  3.20 Mbits/sec   0.010 ms 0/600004 (0%)
+[  5] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 35835
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  5] 0.0000-30.0000 sec  14.3 MBytes  4.00 Mbits/sec   0.019 ms 0/750005 (0%)
+[  6] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 56689
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  6] 0.0000-29.9999 sec  22.9 MBytes  6.40 Mbits/sec   0.015 ms 114/1200006 (0.0095%)
+[  7] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 46247
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  7] 0.0000-30.0050 sec  27.8 MBytes  7.77 Mbits/sec   0.015 ms 192572/1650002 (12%)
+[  8] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 33948
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  8] 0.0000-30.0059 sec  27.3 MBytes  7.64 Mbits/sec   0.016 ms 668136/2100006 (32%)

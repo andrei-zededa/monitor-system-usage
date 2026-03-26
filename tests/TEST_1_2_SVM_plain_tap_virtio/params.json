@@ -1,0 +1,48 @@
+{
+  "client_namespace": "TEST_NS_B",
+  "client_interface": "tapB-SV-jt9",
+  "client_core_base": 0,
+  "server_namespace": "TEST_NS_A",
+  "server_interface": "tapA-SV-jt9",
+  "server_core_base": 4,
+  "test_duration_sec": 30,
+  "datagram_size_bytes": 20,
+  "test_rates_kpps": [
+    10,
+    20,
+    40,
+    80,
+    100,
+    160,
+    220,
+    280
+  ],
+  "client_ips": [
+    "10.99.2.200",
+    "10.99.2.201",
+    "10.99.2.202",
+    "10.99.2.203"
+  ],
+  "server_ips": [
+    "10.99.1.100",
+    "10.99.1.101",
+    "10.99.1.102",
+    "10.99.1.103"
+  ],
+  "flow_count": 4,
+  "multi_flow": true,
+  "server_cores": [
+    4,
+    5,
+    6,
+    7
+  ],
+  "client_cores": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "test_directory": "/home/ev-zed1/msu_analyst/tests/2026-03-26/TEST_1_2_SVM_plain_tap_virtio",
+  "test_name": "TEST_1_2_SVM_plain_tap_virtio"
+}

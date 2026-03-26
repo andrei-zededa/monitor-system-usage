@@ -1,0 +1,20 @@
+Thu Mar 26 11:12:27 AM UTC 2026
+------------------------------------------------------------
+Server listening on UDP port 5001
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  1] local 10.99.1.102 port 5001 connected with 10.99.2.202 port 58668
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  1] 0.0000-30.0002 sec  1.14 MBytes   320 Kbits/sec   0.023 ms 0/60003 (0%)
+[  2] local 10.99.1.102 port 5001 connected with 10.99.2.202 port 52823
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  2] 0.0000-29.9999 sec  2.86 MBytes   800 Kbits/sec   0.023 ms 0/150003 (0%)
+[  3] local 10.99.1.102 port 5001 connected with 10.99.2.202 port 53726
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3] 0.0000-29.9998 sec  5.72 MBytes  1.60 Mbits/sec   0.022 ms 0/300003 (0%)
+[  4] local 10.99.1.102 port 5001 connected with 10.99.2.202 port 34808
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  4] 0.0000-29.9998 sec  11.4 MBytes  3.20 Mbits/sec   0.008 ms 0/600002 (0%)
+[  5] local 10.99.1.102 port 5001 connected with 10.99.2.202 port 41000
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  5] 0.0000-29.9996 sec  14.3 MBytes  4.00 Mbits/sec   0.016 ms 0/750002 (0%)

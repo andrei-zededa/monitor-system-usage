@@ -1,0 +1,2 @@
+msu-collect version=0.0.4 interval=10s flush-interval=6 namespaces=[]
+apk add warning: exec: "apk": executable file not found in $PATH

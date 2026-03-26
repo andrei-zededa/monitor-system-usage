@@ -1,0 +1,29 @@
+Thu Mar 26 12:47:48 PM UTC 2026
+------------------------------------------------------------
+Server listening on UDP port 5001
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  1] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 44428
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  1] 0.0000-30.0003 sec  1.14 MBytes   320 Kbits/sec   0.009 ms 0/60003 (0%)
+[  2] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 36750
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  2] 0.0000-30.0000 sec  2.86 MBytes   800 Kbits/sec   0.003 ms 0/150003 (0%)
+[  3] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 47404
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3] 0.0000-29.9999 sec  5.72 MBytes  1.60 Mbits/sec   0.017 ms 0/300004 (0%)
+[  4] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 40966
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  4] 0.0000-29.9998 sec  11.4 MBytes  3.20 Mbits/sec   0.021 ms 0/600004 (0%)
+[  5] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 53656
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  5] 0.0000-30.0000 sec  14.3 MBytes  4.00 Mbits/sec   0.027 ms 0/750006 (0%)
+[  6] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 48590
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  6] 0.0000-29.9998 sec  22.9 MBytes  6.40 Mbits/sec   0.016 ms 0/1200001 (0%)
+[  7] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 53747
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  7] 0.0000-30.0217 sec  16.6 MBytes  4.63 Mbits/sec   0.036 ms 781483/1650003 (47%)
+[  8] local 10.99.1.100 port 5001 connected with 10.99.2.200 port 38217
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  8] 0.0000-30.0227 sec  35.5 MBytes  9.92 Mbits/sec   0.026 ms 238180/2100009 (11%)
