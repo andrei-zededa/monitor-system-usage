@@ -53,4 +53,5 @@ release:
     owner: andrei-zededa
     name: monitor-system-usage
   extra_files:
-    - glob: ./script/monitor_system_usage.sh
+    - glob: ./scripts/monitor_system_usage.sh
+    - glob: ./scripts/install.sh

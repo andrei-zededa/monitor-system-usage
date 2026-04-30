@@ -43,6 +43,14 @@ type CommandSample struct {
 	Lines     []string
 }
 
+type InitSample struct {
+	Timestamp time.Time
+	Cmd       string
+	NS        string
+	Out       string
+	Err       string
+}
+
 type CommandAnalysis struct {
 	CommandName string
 	Samples     []CommandSample
@@ -175,6 +183,9 @@ type parseResult struct {
 	aSectionsOrder []string
 	bSections      map[string]*Section
 	bSectionsOrder []string
+
+	// Init-section samples (one-time collection, e.g. lscpu).
+	initSamples []InitSample
 
 	// -command mode
 	commandSamples []CommandSample
@@ -424,12 +435,16 @@ func parseCBORFile(filename string, opts parseOpts) (*parseResult, error) {
 		if sample == nil {
 			break
 		}
-		if sample.Section == "init" {
-			continue
-		}
+		ts := sample.ParseTime()
 
-		ts, err := sample.ParseTime()
-		if err != nil {
+		if sample.Section == "init" {
+			res.initSamples = append(res.initSamples, InitSample{
+				Timestamp: ts,
+				Cmd:       sample.Cmd,
+				NS:        sample.NS,
+				Out:       sample.Out,
+				Err:       sample.Err,
+			})
 			continue
 		}
 
@@ -674,6 +689,26 @@ func main() {
 			len(results), matchingCmdCount)
 
 		return
+	}
+
+	if len(res.initSamples) > 0 {
+		fmt.Println("\"init\" section samples")
+		fmt.Println("=======================")
+		for _, s := range res.initSamples {
+			header := s.Cmd
+			if s.NS != "" {
+				header = fmt.Sprintf("[ns=%s] %s", s.NS, s.Cmd)
+			}
+			fmt.Printf("----> %s  @ %s\n", header, s.Timestamp.Format("2006-01-02 15:04:05"))
+			if s.Err != "" {
+				fmt.Printf("  (error: %s)\n", s.Err)
+			}
+			if s.Out != "" {
+				fmt.Println(s.Out)
+			}
+		}
+		fmt.Println("=======================")
+		fmt.Printf("Total \"init\" samples: %d\n\n", len(res.initSamples))
 	}
 
 	if *showASections {

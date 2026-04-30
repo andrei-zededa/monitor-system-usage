@@ -1,2 +1,4 @@
 cmd/msu-collect/msu-collect
 cmd/msu/msu
+msu-collect
+msu

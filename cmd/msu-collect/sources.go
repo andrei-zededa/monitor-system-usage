@@ -191,7 +191,13 @@ func qemuSources(pid int) []Source {
 
 // initSources returns one-time sources collected before the loop.
 func initSources() []Source {
-	var sources []Source
+	sources := []Source{
+		execSource("init", "lscpu"),
+		execSource("init", "lscpu", "-e"),
+		execSource("init", "lsmem"),
+		execSource("init", "dmidecode"),
+		execSource("init", "lspci", "-vv"),
+	}
 	for _, intf := range discoverInterfaces() {
 		sources = append(sources, execSource("init", "ethtool", "-i", intf))
 	}

@@ -22,6 +22,7 @@ msu-collect [flags]
 | `-flush-interval` | `6` | Flush to disk every N collection intervals (default: 6 = every 60s at 10s interval) |
 | `-n` | (none) | Comma-separated list of network namespaces to also monitor |
 | `-o` | stdout | Output file path (`.msu.cbor`). If omitted, writes to stdout |
+| `-include-env` | `filtered` | Environment to record in header: `filtered` (drop secret-looking keys), `all`, or `none` |
 | `-dump` | (none) | Dump a CBOR file to human-readable text and exit |
 | `-version` | | Print version and exit |
 
@@ -45,27 +46,64 @@ msu-collect -interval 10 -o /persist/newlog/keepSentQueue/msu.cbor &
 
 ## Output Format
 
-CBOR (RFC 8949) sequence — concatenated self-contained CBOR items, one per
-collected sample. The first item is a header record; all subsequent items are
-sample records.
+CBOR (RFC 8949) sequence — concatenated self-contained CBOR items. The
+file starts with a single header record, followed by a mix of source
+definitions and samples. Every record carries a `type` field so readers
+can dispatch between the three record kinds.
 
-The `msu` analyzer (`cmd/msu`) auto-detects CBOR vs legacy text format and
-can process both transparently.
+The `msu` analyzer (`cmd/msu`) auto-detects CBOR vs legacy text format
+and can process both transparently.
+
+**Format version 2** — not backwards-compatible with v1. Timestamps are
+now int64 unix-nanoseconds; `section`/`cmd`/`ns` are deduplicated via a
+small integer source dictionary; the header carries additional
+invocation metadata.
 
 ### Header Record
 
-Written once at the start. Contains system metadata:
+Written once at the start. Contains system and invocation metadata:
 
 | Field | Description |
 |-------|-------------|
-| `v` | Format version (currently 1) |
+| `v` | Format version (currently 2) |
 | `type` | Always `"header"` |
-| `ts` | Start time (RFC 3339 UTC) |
+| `ts` | Start time (int64 unix-nanoseconds UTC) |
 | `msu_ver` | Collector version |
 | `hz` | `CLK_TCK` — kernel clock ticks per second |
 | `psz` | `PAGESIZE` in bytes |
 | `cgroup_v` | Cgroup version (1 or 2) |
-| `hostname` | System hostname |
+| `hostname` | `/proc/sys/kernel/hostname` |
+| `kern_ostype` | `/proc/sys/kernel/ostype` (e.g. `Linux`) |
+| `kern_release` | `/proc/sys/kernel/osrelease` (e.g. `6.18.19`) |
+| `kern_version` | `/proc/sys/kernel/version` (e.g. `#1 SMP ...`) |
+| `interval_ns` | Sampling interval in nanoseconds |
+| `flush_every_n` | Flush every N collection intervals |
+| `cmdline` | `os.Args` of the msu-collect invocation |
+| `env` | Environment map (possibly filtered — see `env_mode`) |
+| `env_mode` | `"filtered"`, `"all"`, or `"none"` |
+
+**Env filtering**: by default (`-include-env=filtered`), keys matching
+the case-insensitive regex
+`(TOKEN|KEY|SECRET|PASSWORD|PASSWD|AUTH|CREDENTIAL|COOKIE)` are dropped
+before the env map is written. Use `-include-env=none` to omit the env
+entirely, or `-include-env=all` to capture every variable. Collected
+files may still contain secrets from the output of monitored commands,
+so treat them as sensitive regardless of env mode.
+
+### Source Definition Record
+
+Emitted inline the first time a given `(section, cmd, ns)` tuple is
+used, just before the Sample that references it. Subsequent Samples
+for the same tuple only carry the `src` ID.
+
+| Field | Description |
+|-------|-------------|
+| `v` | Format version |
+| `type` | Always `"src"` |
+| `id` | uint16 source ID |
+| `sec` | Section: `"init"`, `"A"`, or `"B"` |
+| `cmd` | Canonical command identifier, e.g. `"cat /proc/stat"` |
+| `ns` | Network namespace (omitted for root namespace) |
 
 ### Sample Record
 
@@ -74,11 +112,10 @@ One per collected file or command execution:
 | Field | Description |
 |-------|-------------|
 | `v` | Format version |
-| `ts` | Collection time (RFC 3339 UTC, per-sample precision) |
+| `type` | Always `"s"` |
+| `ts` | Collection time (int64 unix-nanoseconds UTC) |
 | `seq` | Monotonic interval counter |
-| `sec` | Section: `"init"`, `"A"`, or `"B"` |
-| `cmd` | Canonical command identifier, e.g. `"cat /proc/stat"` |
-| `ns` | Network namespace (omitted for root namespace) |
+| `src` | uint16 source ID — refers to a preceding SourceDef record |
 | `out` | Raw output, newline-joined string |
 | `err` | Error message if collection failed (omitted on success) |
 

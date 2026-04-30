@@ -188,9 +188,3 @@ func getConf(name string) int {
 	val, _ := strconv.Atoi(strings.TrimSpace(out))
 	return val
 }
-
-// getHostname returns the system hostname.
-func getHostname() string {
-	h, _ := os.Hostname()
-	return h
-}

@@ -206,10 +206,7 @@ func collectMSUSnapshotsCBOR(filename string, commands map[string]bool) (map[str
 		if !commands[sample.Cmd] {
 			continue
 		}
-		ts, err := sample.ParseTime()
-		if err != nil {
-			continue
-		}
+		ts := sample.ParseTime()
 		lines := strings.Split(sample.Out, "\n")
 		result[sample.Cmd] = append(result[sample.Cmd], msuSnapshot{
 			time:  ts,

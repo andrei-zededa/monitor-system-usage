@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/andrei-zededa/monitor-system-usage/pkg/msuformat"
@@ -19,6 +20,11 @@ type Collector struct {
 	hz            int
 	psz           int
 
+	// Invocation metadata, captured at startup and emitted in the header.
+	cmdLine []string
+	env     map[string]string
+	envMode string
+
 	// Dynamic state refreshed each A section.
 	interfaces   []string
 	qemuPIDs     []int
@@ -27,7 +33,9 @@ type Collector struct {
 }
 
 // NewCollector creates a Collector.
-func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int, namespaces []string) *Collector {
+func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int,
+	namespaces, cmdLine []string, env map[string]string, envMode string,
+) *Collector {
 	cgv := detectCgroupVersion()
 	if flushInterval < 1 {
 		flushInterval = 1
@@ -40,21 +48,40 @@ func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int
 		cgroupV:       cgv,
 		hz:            getConf("CLK_TCK"),
 		psz:           getConf("PAGESIZE"),
+		cmdLine:       cmdLine,
+		env:           env,
+		envMode:       envMode,
 		nsInterfaces:  make(map[string][]string),
 	}
+}
+
+// readKernelFile reads a /proc/sys/kernel/* file, trims whitespace, and returns
+// the content. Returns "" on any error (kernel file missing, permission denied, etc.).
+func readKernelFile(name string) string {
+	data, err := os.ReadFile("/proc/sys/kernel/" + name)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
 }
 
 // WriteHeader writes the initial header record.
 func (c *Collector) WriteHeader() error {
 	return c.writer.WriteHeader(&msuformat.Header{
-		V:        msuformat.FormatVersion,
-		Type:     "header",
-		Ts:       msuformat.Now(),
-		Version:  version,
-		HZ:       c.hz,
-		PSZ:      c.psz,
-		CgroupV:  c.cgroupV,
-		Hostname: getHostname(),
+		TS:            msuformat.NowNanos(),
+		MsuVer:        version,
+		HZ:            c.hz,
+		PSZ:           c.psz,
+		CgroupV:       c.cgroupV,
+		Hostname:      readKernelFile("hostname"),
+		KernelOSType:  readKernelFile("ostype"),
+		KernelRelease: readKernelFile("osrelease"),
+		KernelVersion: readKernelFile("version"),
+		IntervalNS:    c.interval.Nanoseconds(),
+		FlushEveryN:   c.flushInterval,
+		CmdLine:       c.cmdLine,
+		Env:           c.env,
+		EnvMode:       c.envMode,
 	})
 }
 
@@ -94,18 +121,8 @@ func (c *Collector) collectSource(src Source, seq int64) {
 		}
 	}
 
-	s := &msuformat.Sample{
-		V:       msuformat.FormatVersion,
-		Ts:      msuformat.Now(),
-		Seq:     seq,
-		Section: src.Section,
-		Cmd:     src.Cmd,
-		NS:      src.NS,
-		Out:     out,
-		Err:     errMsg,
-	}
-
-	if err := c.writer.WriteSample(s); err != nil {
+	if err := c.writer.WriteSample(src.Section, src.Cmd, src.NS, seq,
+		msuformat.NowNanos(), out, errMsg); err != nil {
 		log.Printf("warning: failed to write sample for %q: %v", src.Cmd, err)
 	}
 }
