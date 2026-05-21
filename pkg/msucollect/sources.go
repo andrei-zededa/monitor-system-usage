@@ -1,4 +1,4 @@
-package main
+package msucollect
 
 import (
 	"fmt"
@@ -189,6 +189,15 @@ func qemuSources(pid int) []Source {
 	return sources
 }
 
+// fioPersistVaultScript runs a 60s 4k random-write fio benchmark against
+// /persist/vault (EVE-OS persistent storage) when it exists, then cleans up
+// the test file/dir. Skipped silently when /persist/vault is not present.
+const fioPersistVaultScript = `set -eu; [ -d "/persist/vault/" ] && { mkdir -p "/persist/vault/fio_test_dir" && fio --name=msu-collect-test --directory=/persist/vault/fio_test_dir --rw=randwrite --ioengine=sync --fsync=1 --bs=4k --size=256M --runtime=60 --time_based --numjobs=1 --direct=0 --fallocate=none --group_reporting; }; rm "/persist/vault/fio_test_dir/msu-collect-test.0.0" || true; rmdir "/persist/vault/fio_test_dir/"`
+
+// fioHomeScript runs the same 60s 4k random-write fio benchmark against
+// $HOME (used when not running on EVE-OS), then cleans up.
+const fioHomeScript = `set -eu; mkdir -p "$HOME/fio_test_dir" && fio --name=msu-collect-test --directory=$HOME/fio_test_dir --rw=randwrite --ioengine=sync --fsync=1 --bs=4k --size=256M --runtime=60 --time_based --numjobs=1 --direct=0 --fallocate=none --group_reporting; rm "$HOME/fio_test_dir/msu-collect-test.0.0" || true; rmdir "$HOME/fio_test_dir/"`
+
 // initSources returns one-time sources collected before the loop.
 func initSources() []Source {
 	sources := []Source{
@@ -197,6 +206,8 @@ func initSources() []Source {
 		execSource("init", "lsmem"),
 		execSource("init", "dmidecode"),
 		execSource("init", "lspci", "-vv"),
+		execSource("init", "sh", "-c", fioPersistVaultScript),
+		execSource("init", "sh", "-c", fioHomeScript),
 	}
 	for _, intf := range discoverInterfaces() {
 		sources = append(sources, execSource("init", "ethtool", "-i", intf))

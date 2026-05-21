@@ -1,4 +1,4 @@
-package main
+package msucollect
 
 import (
 	"fmt"
@@ -19,6 +19,7 @@ type Collector struct {
 	cgroupV       int
 	hz            int
 	psz           int
+	version       string
 
 	// Invocation metadata, captured at startup and emitted in the header.
 	cmdLine []string
@@ -34,7 +35,7 @@ type Collector struct {
 
 // NewCollector creates a Collector.
 func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int,
-	namespaces, cmdLine []string, env map[string]string, envMode string,
+	namespaces, cmdLine []string, env map[string]string, envMode, version string,
 ) *Collector {
 	cgv := detectCgroupVersion()
 	if flushInterval < 1 {
@@ -48,6 +49,7 @@ func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int
 		cgroupV:       cgv,
 		hz:            getConf("CLK_TCK"),
 		psz:           getConf("PAGESIZE"),
+		version:       version,
 		cmdLine:       cmdLine,
 		env:           env,
 		envMode:       envMode,
@@ -69,7 +71,7 @@ func readKernelFile(name string) string {
 func (c *Collector) WriteHeader() error {
 	return c.writer.WriteHeader(&msuformat.Header{
 		TS:            msuformat.NowNanos(),
-		MsuVer:        version,
+		MsuVer:        c.version,
 		HZ:            c.hz,
 		PSZ:           c.psz,
 		CgroupV:       c.cgroupV,
@@ -225,7 +227,7 @@ func (c *Collector) Run(stop <-chan struct{}) error {
 
 // installTools runs apk add for required tools (best effort).
 func installTools() {
-	out, err := runCmd([]string{"apk", "add", "--no-cache", "musl-utils", "iproute2", "ethtool"})
+	out, err := runCmd([]string{"apk", "add", "--no-cache", "musl-utils", "iproute2", "ethtool", "fio"})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "apk add warning: %v\n", err)
 	} else {
