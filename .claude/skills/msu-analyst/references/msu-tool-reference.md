@@ -234,6 +234,25 @@ for older test bundles.
 `-iperf-json` and `-params-json` require `-report`. Without them the
 report still includes Levels 1-3.
 
+`-report` picks up `*.msu.cbor`, any other `*.cbor` (e.g. a collector
+whose stdout was redirected to `msu-collect.cbor`) and legacy
+`*_monitor_system_usage.out` files. When the collector ran with `-ping`,
+the report gets an extra "ICMP Ping Loss & RTT" panel per system.
+
+#### Ping monitor report
+
+| Flag | Description |
+|------|-------------|
+| `-ping FILE` | Text report for the `ping <ip>` monitors of a CBOR file: per target the monitored period, sent/received/lost totals, loss %, RTT mean/stddev/min/max, every sampling interval with loss, and consecutive lossy intervals merged into episodes. Honors `-from`/`-to`. |
+| `-ping-intervals` | With `-ping`: list every sampling interval of every target (sent, received, lost, loss %, RTT avg/min/max, notes), not only the lossy ones. |
+
+`-ping` cannot be combined with `-command` or `-changing`. Notes on the
+interval rows: `run start` = first interval of a collector run (covers
+the init phase, so it is longer); `gap` = the collector stalled (interval
+longer than 2.5x the sampling interval); `starved` = fewer than 80% of
+the expected requests were sent in the interval; `late N` = replies that
+arrived after the timeout (already counted in `lost`).
+
 #### CPU comparison mode
 
 | Flag | Description |
@@ -293,6 +312,20 @@ hex rows:
 ```bash
 $MSU -command "cat /proc/net/softnet_stat" -section-type A -field-pattern "^[0-9a-f]" <msu-file>
 ```
+
+**Ping monitor loss / RTT** — for captures taken with
+`msu-collect -ping <ip>`:
+
+```bash
+$MSU -ping <msu-file>                          # summary table + lossy intervals + episodes
+$MSU -ping -ping-intervals <msu-file>          # every 10s interval of every target
+$MSU -ping -from 12:01:00 -to 12:05:00 <msu-file>
+```
+
+Per interval, loss % is `Δlost / Δtx` and the mean RTT is
+`Δrtt_sum_us / Δrx`; the overall stddev comes from `rtt_sumsq_us`. A
+loss is counted when the reply timeout expires, so a loss can be
+attributed to the interval after the one in which the request was sent.
 
 **Report generation:**
 

@@ -266,7 +266,9 @@ Automatically discovered via filesystem walk. Supports both cgroup v1 and v2.
 
 #### QEMU Process Monitoring
 
-For each running `qemu-system` process (discovered via `pgrep -x qemu-system`),
+For each running `qemu-system-*` process (discovered by scanning `/proc/*/comm`
+for the `qemu-system` prefix; comm is truncated to 15 characters, e.g.
+`qemu-system-x86`, so an exact name match would miss them),
 three levels of thread data are collected:
 
 **1. QEMU process itself** (`/proc/<pid>/`):
@@ -376,6 +378,8 @@ at the very end of an interval is counted as lost in the next one.
 The `msu` analyzer can track any of these fields directly:
 
 ```sh
+msu -ping msu.cbor                   # per-target summary, lossy intervals, episodes
+msu -ping -ping-intervals msu.cbor   # every interval of every target
 msu -command "ping 10.0.0.1" -field-pattern '^lost ' -section-type B msu.cbor
 ```
 

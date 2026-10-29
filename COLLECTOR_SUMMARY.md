@@ -93,7 +93,7 @@ cgroups (discovered by tree walk each A section):
 - v2: every `cpu.stat`, `memory.stat`, `memory.current`, `io.stat` under `/sys/fs/cgroup`
 - v1: every `cpu.stat` under `/sys/fs/cgroup/cpu`, every `memory.stat` under `/sys/fs/cgroup/memory`
 
-Per QEMU process (`pgrep -x qemu-system`):
+Per QEMU process (`/proc/*/comm` starting with `qemu-system`; the kernel truncates comm to 15 chars, e.g. `qemu-system-x86`):
 ```
 cat /proc/<pid>/{stat,statm,status,wchan,sched,schedstat}
 cat /proc/<pid>/task/<tid>/{stat,comm}     (every thread — vCPU threads)

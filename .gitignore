@@ -1,4 +1,5 @@
-cmd/msu-collect/msu-collect
-cmd/msu/msu
-msu-collect
-msu
+# Built binaries (repo root and in-package builds), not the cmd/ directories.
+/cmd/msu-collect/msu-collect
+/cmd/msu/msu
+/msu-collect
+/msu

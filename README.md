@@ -100,6 +100,9 @@ A multi-mode CLI tool that reads collected data and produces:
    Zedcloud API overlay
 5. **Unified HTML reports** — full diagnostic reports combining all of the
    above, optionally correlated with iperf throughput test results
+6. **Ping monitor reports** — for captures taken with `msu-collect -ping`,
+   per-target loss %, RTT statistics and the exact sampling intervals that
+   saw packet loss (`msu -ping`), plus a loss/RTT chart in the HTML report
 
 The analyzer auto-detects file format (CBOR or legacy text) and supports
 flexible time filtering.

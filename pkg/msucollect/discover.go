@@ -3,6 +3,7 @@ package msucollect
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -78,18 +79,43 @@ func findFiles(root, name string) []string {
 	return result
 }
 
-// discoverQEMUPIDs returns PIDs of qemu-system processes.
+// qemuCommPrefix identifies qemu-system-* processes by their comm. The
+// kernel truncates comm to 15 characters, so qemu-system-x86_64 shows up
+// as "qemu-system-x86" and qemu-system-aarch64 as "qemu-system-aar"; an
+// exact match (the former `pgrep -x qemu-system`) never found them.
+const qemuCommPrefix = "qemu-system"
+
+// discoverQEMUPIDs returns the PIDs of all qemu-system-* processes, sorted.
 func discoverQEMUPIDs() []int {
-	out, err := runCmd([]string{"pgrep", "-x", "qemu-system"})
+	return discoverQEMUPIDsIn("/proc")
+}
+
+// discoverQEMUPIDsIn scans procRoot/<pid>/comm for processes whose name
+// starts with qemuCommPrefix. Only thread group leaders are listed at the
+// top level of /proc, so threads are not reported twice.
+func discoverQEMUPIDsIn(procRoot string) []int {
+	entries, err := os.ReadDir(procRoot)
 	if err != nil {
 		return nil
 	}
 	var pids []int
-	for _, line := range strings.Fields(out) {
-		if pid, err := strconv.Atoi(line); err == nil {
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(e.Name())
+		if err != nil {
+			continue
+		}
+		comm, err := os.ReadFile(filepath.Join(procRoot, e.Name(), "comm"))
+		if err != nil {
+			continue
+		}
+		if strings.HasPrefix(strings.TrimSpace(string(comm)), qemuCommPrefix) {
 			pids = append(pids, pid)
 		}
 	}
+	sort.Ints(pids)
 	return pids
 }
 

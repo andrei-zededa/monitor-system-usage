@@ -106,6 +106,10 @@ msu-collect -dump /tmp/msu.cbor | less
 msu-collect -ping 192.168.1.1 -ping 8.8.8.8 -o /tmp/msu.cbor
 ```
 
+Files produced by redirecting the collector's stdout (e.g.
+`msu-collect ... 1> /persist/newlog/msu-collect.cbor`) are picked up by
+`-report` as long as the name ends in `.cbor`.
+
 The collector is bounded to ~1-2 MB of memory regardless of run length, so
 multi-day captures are safe.
 
@@ -125,7 +129,8 @@ Open it in a browser. The report contains these chart sections:
 1. **CPU %** — Aggregate utilization (iowait=busy and iowait=idle modes) plus per-field breakdown (user, system, softirq, steal, etc.) and per-CPU softirq percentages. Per-CPU series are in the legend but toggled **off** by default — turn them on to see core saturation.
 2. **Softirq & Network Rates** — NET_RX/NET_TX softirq events/s (total and per-CPU), softnet processed/drops/squeeze rates.
 3. **Interface Traffic & Drops** — Per-interface rx/tx packets/s, Mbps, and drop/error rates from /proc/net/dev.
-4. **QEMU & vhost Thread CPU %** — Rendered **only if `qemu-system` processes were seen in `ps auxwww`**. CPU time for qemu-system processes and the associated `vhost-<pid>` kernel threads (which run outside the QEMU cgroup — see `references/qemu-network-overhead.md`).
+4. **ICMP Ping Loss & RTT** — Rendered **only if the collector ran with `-ping`**. Per target: loss % per sampling interval (visible), mean RTT ms (visible) and max RTT ms (hidden by default).
+5. **QEMU & vhost Thread CPU %** — Rendered **only if `qemu-system` processes were seen in `ps auxwww`**. CPU time for qemu-system processes and the associated `vhost-<pid>` kernel threads (which run outside the QEMU cgroup — see `references/qemu-network-overhead.md`).
 
 ### Key Questions to Answer
 
@@ -150,6 +155,28 @@ Open it in a browser. The report contains these chart sections:
   $MSU -changing "<interface-name>" -section-type A <msu-file>
   ```
 - Check softnet drops/squeeze rates — non-zero values indicate kernel packet processing issues
+
+**Was there packet loss or latency towards the ping targets?** (only when
+the collector ran with `-ping <ip>`)
+- Run the ping report; it lists every target with the monitored period,
+  sent/received/lost totals, loss %, RTT mean/stddev/min/max, every
+  10s interval that saw loss, and consecutive lossy intervals merged into
+  episodes:
+  ```bash
+  $MSU -ping <msu-file>                      # summary + lossy intervals
+  $MSU -ping -ping-intervals <msu-file>      # every interval of every target
+  $MSU -ping -from <START> -to <END> <msu-file>
+  ```
+- `lost` includes `late` replies (answered after the timeout); `lost - late`
+  is the number of requests that were never answered.
+- A `gap` note means the collector itself stalled (interval much longer
+  than the sampling interval); `starved` means far fewer requests were sent
+  than the ping interval allows — both point at the host, not the network.
+- The "run start" interval covers the init phase (lscpu, lspci, ...) during
+  which the monitors are already running, so it is longer than the others.
+- Correlate lossy intervals with the CPU %, softirq and interface drop
+  charts of the same time window to decide whether loss is host-side
+  (saturated core, softnet drops, rx_dropped) or on the network path.
 
 **For targeted CLI investigation:**
 ```bash

@@ -63,6 +63,11 @@ func discoverCPUCompareFiles(dir string) (map[string]*systemFiles, error) {
 		case strings.HasSuffix(n, ".msu.cbor"):
 			sys := strings.TrimSuffix(n, ".msu.cbor")
 			ensure(sys).msuOut = p
+		case strings.HasSuffix(n, ".cbor"):
+			// e.g. "msu-collect.cbor" when the collector's stdout was
+			// redirected instead of using -o.
+			sys := strings.TrimSuffix(n, ".cbor")
+			ensure(sys).msuOut = p
 		case strings.HasSuffix(n, "_monitor_system_usage.out"):
 			sys := strings.TrimSuffix(n, "_monitor_system_usage.out")
 			ensure(sys).msuOut = p
@@ -1013,6 +1018,8 @@ func writeChartJSConstants(b *strings.Builder) {
     if (label.startsWith('qemu ') || label.startsWith('vhost-')) return true;
     // sysfs drop/error series: visible (these only appear when non-zero)
     if (label.includes('sysfs') && (label.includes('dropped') || label.includes('errors'))) return true;
+    // Ping monitors: loss % and mean RTT visible, max RTT hidden
+    if (label.startsWith('ping ') && (label.endsWith(' loss %') || label.endsWith(' rtt avg ms'))) return true;
     return false;
   }
 

@@ -27,14 +27,14 @@ type iperfFlowResult struct {
 }
 
 type iperfResult struct {
-	TargetKpps         int              `json:"target_kpps"`
-	AchievedClientKpps float64          `json:"achieved_client_kpps,omitempty"`
-	AchievedServerKpps float64          `json:"achieved_server_kpps,omitempty"`
-	LossPercent        float64          `json:"loss_percent,omitempty"`
-	StartTime          string           `json:"start_time,omitempty"`
-	EndTime            string           `json:"end_time,omitempty"`
-	FlowCount          int              `json:"flow_count,omitempty"`
-	Aggregate          *iperfAggregate  `json:"aggregate,omitempty"`
+	TargetKpps         int               `json:"target_kpps"`
+	AchievedClientKpps float64           `json:"achieved_client_kpps,omitempty"`
+	AchievedServerKpps float64           `json:"achieved_server_kpps,omitempty"`
+	LossPercent        float64           `json:"loss_percent,omitempty"`
+	StartTime          string            `json:"start_time,omitempty"`
+	EndTime            string            `json:"end_time,omitempty"`
+	FlowCount          int               `json:"flow_count,omitempty"`
+	Aggregate          *iperfAggregate   `json:"aggregate,omitempty"`
 	PerFlow            []iperfFlowResult `json:"per_flow,omitempty"`
 }
 
@@ -125,6 +125,7 @@ func runReport(dir, iperfPath, paramsPath string) error {
 		cpuPctData := cpuSystemData{Name: sysName}
 		rateData := cpuSystemData{Name: sysName + " - Softirq & Network Rates"}
 		netData := cpuSystemData{Name: sysName + " - Interface Traffic & Drops"}
+		pingData := cpuSystemData{Name: sysName + " - ICMP Ping Loss & RTT"}
 		var qemuData cpuSystemData
 
 		if fs.msuOut != "" {
@@ -266,6 +267,17 @@ func runReport(dir, iperfPath, paramsPath string) error {
 					addSeriesOrdered(&netData, sysName, sysfsSeries, sysfsKeys)
 				}
 			}
+
+			// "ping <ip>" monitors (CBOR only) → loss % and RTT per interval
+			if isCBORFile(fs.msuOut) {
+				pf, err := collectPingSamples(fs.msuOut)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: %s: ping samples: %v\n", fs.msuOut, err)
+				} else if len(pf.Targets) > 0 {
+					pingSeries, pingKeys := pingChartSeries(pf)
+					addSeriesOrdered(&pingData, sysName, pingSeries, pingKeys)
+				}
+			}
 		}
 
 		// Cloud API sources → CPU % chart
@@ -303,6 +315,9 @@ func runReport(dir, iperfPath, paramsPath string) error {
 		}
 		if len(netData.Series) > 0 {
 			timeSeriesSystems = append(timeSeriesSystems, netData)
+		}
+		if len(pingData.Series) > 0 {
+			timeSeriesSystems = append(timeSeriesSystems, pingData)
 		}
 		if len(qemuData.Series) > 0 {
 			timeSeriesSystems = append(timeSeriesSystems, qemuData)
@@ -673,7 +688,7 @@ func generateReportHTML(outputPath string, level int, timeSeriesSystems []cpuSys
 				_ = sirqJSON // used below in script
 			}
 
-			_ = cpuJSON     // used below
+			_ = cpuJSON      // used below
 			_ = keyCoresJSON // used below
 		}
 
@@ -821,6 +836,9 @@ func generateReportHTML(outputPath string, level int, timeSeriesSystems []cpuSys
 		}
 		if strings.Contains(sys.Name, "Traffic") {
 			yLabel = "rate"
+		}
+		if strings.Contains(sys.Name, "Ping") {
+			yLabel = "loss % / RTT ms"
 		}
 		b.WriteString(fmt.Sprintf("</div>\n    <canvas id=\"chart%d\" height=\"110\" data-ylabel=\"%s\"></canvas>\n", chartIdx+i, yLabel))
 		b.WriteString("    <button class=\"btn\" onclick=\"resetAllZoom()\">Reset Zoom</button>\n  </div>\n\n")

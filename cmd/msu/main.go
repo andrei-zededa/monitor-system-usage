@@ -537,6 +537,8 @@ func main() {
 		reportDir       = flag.String("report", "", "Generate unified HTML report from MSU data directory")
 		reportIperf     = flag.String("iperf-json", "", "iperf JSON (from parse_iperf.py) for rate-step charts in -report")
 		reportParams    = flag.String("params-json", "", "test params JSON (from extract_test_params.py) for -report")
+		pingReport      = flag.Bool("ping", false, "Print the ICMP ping monitor report (per-target loss, RTT, lossy intervals) for the given CBOR file")
+		pingIntervals   = flag.Bool("ping-intervals", false, "With -ping: list every sampling interval of every target, not only those with loss")
 		showVer         = flag.Bool("version", false, "Show version and exit")
 	)
 
@@ -575,6 +577,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *pingIntervals && !*pingReport {
+		fmt.Fprintf(os.Stderr, "Error: -ping-intervals requires -ping\n")
+		os.Exit(1)
+	}
+	if *pingReport && (*trackCommand != "" || *changingPattern != "") {
+		fmt.Fprintf(os.Stderr, "Error: -ping cannot be combined with -command or -changing\n")
+		os.Exit(1)
+	}
+
 	if flag.NArg() < 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] <logfile>\n", os.Args[0])
 		flag.PrintDefaults()
@@ -582,6 +593,14 @@ func main() {
 	}
 
 	filename := flag.Arg(0)
+
+	// Ping monitor report mode: reads only the "ping <ip>" samples.
+	if *pingReport {
+		if err := runPingReport(filename, *fromFlag, *toFlag, *pingIntervals); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	var fieldRe *regexp.Regexp
 	var valueRe *regexp.Regexp
