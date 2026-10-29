@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -23,6 +24,33 @@ var (
 	treeState = ""
 )
 
+// ipv4List implements flag.Value for a repeatable -ping flag. Each
+// occurrence may also hold a comma-separated list.
+type ipv4List []net.IP
+
+func (l *ipv4List) String() string {
+	s := make([]string, len(*l))
+	for i, ip := range *l {
+		s[i] = ip.String()
+	}
+	return strings.Join(s, ",")
+}
+
+func (l *ipv4List) Set(v string) error {
+	for _, part := range strings.Split(v, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		ip := net.ParseIP(part).To4()
+		if ip == nil {
+			return fmt.Errorf("%q is not an IPv4 address", part)
+		}
+		*l = append(*l, ip)
+	}
+	return nil
+}
+
 func main() {
 	var (
 		interval      = flag.Int("interval", 10, "Collection interval in seconds")
@@ -33,7 +61,14 @@ func main() {
 		dumpFile      = flag.String("dump", "", "Dump a CBOR file to human-readable text on stdout")
 		includeEnv    = flag.String("include-env", msuformat.EnvModeFiltered,
 			"Environment variables to record in header: filtered|all|none")
+		pingInterval = flag.Duration("ping-interval", msucollect.DefaultPingInterval,
+			"Time between ICMP echo requests sent to each -ping target")
+		pingTimeout = flag.Duration("ping-timeout", msucollect.DefaultPingTimeout,
+			"Time to wait for an echo reply before counting the request as lost")
 	)
+	var pingTargets ipv4List
+	flag.Var(&pingTargets, "ping",
+		"IPv4 address to ping continuously, counters recorded in every B section (repeatable)")
 	flag.Parse()
 
 	if *showVer {
@@ -57,6 +92,10 @@ func main() {
 		nsList = strings.Split(*namespaces, ",")
 	}
 
+	if *pingInterval <= 0 || *pingTimeout <= 0 {
+		log.Fatalf("-ping-interval and -ping-timeout must be positive durations")
+	}
+
 	var writer *msuformat.Writer
 	if *outputFile != "" {
 		var err error
@@ -77,16 +116,19 @@ func main() {
 		cancel()
 	}()
 
-	fmt.Fprintf(os.Stderr, "msu-collect version=%s interval=%ds flush-interval=%d namespaces=%v env=%s\n",
-		version, *interval, *flushInterval, nsList, *includeEnv)
+	fmt.Fprintf(os.Stderr, "msu-collect version=%s interval=%ds flush-interval=%d namespaces=%v env=%s ping=%v ping-interval=%s ping-timeout=%s\n",
+		version, *interval, *flushInterval, nsList, *includeEnv, pingTargets, *pingInterval, *pingTimeout)
 
 	cfg := msucollect.Config{
-		Writer:      writer,
-		Interval:    time.Duration(*interval) * time.Second,
-		FlushEveryN: *flushInterval,
-		Namespaces:  nsList,
-		IncludeEnv:  *includeEnv,
-		Version:     version,
+		Writer:       writer,
+		Interval:     time.Duration(*interval) * time.Second,
+		FlushEveryN:  *flushInterval,
+		Namespaces:   nsList,
+		IncludeEnv:   *includeEnv,
+		Version:      version,
+		PingTargets:  pingTargets,
+		PingInterval: *pingInterval,
+		PingTimeout:  *pingTimeout,
 	}
 	if err := msucollect.Run(ctx, cfg); err != nil {
 		log.Fatal(err)

@@ -31,6 +31,9 @@ type Collector struct {
 	qemuPIDs     []int
 	cgroupPaths  []string
 	nsInterfaces map[string][]string // ns -> interfaces
+
+	// Continuous ICMP echo monitors, sampled in every B section.
+	pings []*PingMonitor
 }
 
 // NewCollector creates a Collector.
@@ -55,6 +58,13 @@ func NewCollector(w *msuformat.Writer, interval time.Duration, flushInterval int
 		envMode:       envMode,
 		nsInterfaces:  make(map[string][]string),
 	}
+}
+
+// AddPingMonitor registers an ICMP echo monitor. It is started when Run
+// begins and its counters are written as a B-section sample (cmd
+// "ping <ip>") every interval. Must be called before Run.
+func (c *Collector) AddPingMonitor(m *PingMonitor) {
+	c.pings = append(c.pings, m)
 }
 
 // readKernelFile reads a /proc/sys/kernel/* file, trims whitespace, and returns
@@ -184,10 +194,30 @@ func (c *Collector) collectBSection(seq int64) {
 	for _, pid := range c.qemuPIDs {
 		c.collectAll(qemuSources(pid), seq)
 	}
+
+	// Ping monitor counters.
+	for _, m := range c.pings {
+		out, errMsg := m.Sample()
+		if err := c.writer.WriteSample("B", m.Cmd(), "", seq,
+			msuformat.NowNanos(), out, errMsg); err != nil {
+			log.Printf("warning: failed to write sample for %q: %v", m.Cmd(), err)
+		}
+	}
 }
 
 // Run executes the collection loop until stop is closed.
 func (c *Collector) Run(stop <-chan struct{}) error {
+	// Ping monitors run for the whole session, including the init phase,
+	// so the first B sample already reflects any early loss.
+	for _, m := range c.pings {
+		m.Start()
+	}
+	defer func() {
+		for _, m := range c.pings {
+			m.Stop()
+		}
+	}()
+
 	// Install tools (best effort, like the shell script).
 	installTools()
 

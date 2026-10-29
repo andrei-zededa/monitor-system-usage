@@ -8,7 +8,7 @@
 | `A`     | Every 3rd interval (`seq%3==0`) → 30s at default | Network/config-heavy, expensive  |
 | `B`     | Every interval → 10s default                     | CPU/mem/IO counters              |
 
-Defaults: `-interval 10`, `-flush-interval 6` (disk flush every 60s), `-n` namespace list empty.
+Defaults: `-interval 10`, `-flush-interval 6` (disk flush every 60s), `-n` namespace list empty, `-ping` target list empty (`-ping-interval 100ms`, `-ping-timeout 500ms`).
 
 ## Header (written once, not a command)
 
@@ -99,6 +99,14 @@ cat /proc/<pid>/{stat,statm,status,wchan,sched,schedstat}
 cat /proc/<pid>/task/<tid>/{stat,comm}     (every thread — vCPU threads)
 cat /proc/<kpid>/{stat,comm}               (kernel threads whose comm contains the QEMU pid:
                                             vhost-<pid>, kvm-pit/<pid>)
+```
+
+Per `-ping <IPv4>` target (continuous background ICMP echo, 10 requests/s, 500ms timeout — `ping.go`):
+```
+ping <ip>            (synthetic source, no external command: cumulative tx/tx_err/rx/rx_err/
+                      lost/late/dup/stray counters, rtt sum and sum-of-squares in µs, plus
+                      per-interval rtt min/max and in-flight count; "key value" lines like
+                      /proc/vmstat — field reference in cmd/msu-collect/README.md)
 ```
 
 ## Three things worth knowing

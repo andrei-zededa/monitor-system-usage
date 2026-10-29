@@ -116,6 +116,9 @@ The collector captures a snapshot of system state, organized into two tiers:
 - Per-QEMU process: `/proc/<pid>/stat`, status, scheduler stats
 - Per-QEMU thread: `/proc/<pid>/task/<tid>/stat`
 - Associated kernel threads (vhost-*, kvm-*)
+- ICMP echo (ping) counters for every `-ping <IPv4>` target: requests
+  sent/received/lost, RTT sums and per-interval min/max (10 requests/s,
+  continuous, so loss can be attributed to a specific interval)
 
 ### A-Section (every 30s — comprehensive, heavier)
 - Full process listing (`ps auxwww`)

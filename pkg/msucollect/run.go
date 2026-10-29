@@ -3,6 +3,7 @@ package msucollect
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -51,6 +52,14 @@ type Config struct {
 	CmdLine     []string
 	Env         map[string]string
 	Version     string
+
+	// PingTargets lists IPv4 addresses to probe continuously with ICMP
+	// echo requests; each target's counters are recorded in every B
+	// section as cmd "ping <ip>". PingInterval and PingTimeout default to
+	// DefaultPingInterval and DefaultPingTimeout when zero.
+	PingTargets  []net.IP
+	PingInterval time.Duration
+	PingTimeout  time.Duration
 }
 
 // Run executes the collection loop until ctx is cancelled. It does not close
@@ -84,6 +93,18 @@ func Run(ctx context.Context, cfg Config) error {
 
 	c := NewCollector(cfg.Writer, cfg.Interval, cfg.FlushEveryN, cfg.Namespaces,
 		cfg.CmdLine, cfg.Env, cfg.IncludeEnv, cfg.Version)
+
+	for _, ip := range cfg.PingTargets {
+		m, err := NewPingMonitor(PingConfig{
+			Target:   ip,
+			Interval: cfg.PingInterval,
+			Timeout:  cfg.PingTimeout,
+		})
+		if err != nil {
+			return fmt.Errorf("msucollect: %w", err)
+		}
+		c.AddPingMonitor(m)
+	}
 
 	stop := make(chan struct{})
 	go func() {

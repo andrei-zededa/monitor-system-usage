@@ -99,6 +99,11 @@ msu-collect -n TEST_NS_CLIENT,TEST_NS_SERVER -o /tmp/msu.cbor
 
 # Inspect a captured file without firing up the analyzer.
 msu-collect -dump /tmp/msu.cbor | less
+
+# Continuous ICMP echo (10/s) to one or more IPv4 targets; per-target
+# cumulative tx/rx/lost counters and RTT sums land in every B section
+# as cmd "ping <ip>", so loss can be pinned to a 10s interval.
+msu-collect -ping 192.168.1.1 -ping 8.8.8.8 -o /tmp/msu.cbor
 ```
 
 The collector is bounded to ~1-2 MB of memory regardless of run length, so

@@ -23,6 +23,9 @@ msu-collect [flags]
 | `-n` | (none) | Comma-separated list of network namespaces to also monitor |
 | `-o` | stdout | Output file path (`.msu.cbor`). If omitted, writes to stdout |
 | `-include-env` | `filtered` | Environment to record in header: `filtered` (drop secret-looking keys), `all`, or `none` |
+| `-ping` | (none) | IPv4 address to ping continuously; repeatable (or comma-separated). Counters are recorded in every B section as `ping <ip>` |
+| `-ping-interval` | `100ms` | Time between ICMP echo requests sent to each `-ping` target (10 requests/s by default) |
+| `-ping-timeout` | `500ms` | Time to wait for an echo reply before counting the request as lost |
 | `-dump` | (none) | Dump a CBOR file to human-readable text and exit |
 | `-version` | | Print version and exit |
 
@@ -34,6 +37,10 @@ msu-collect -o /persist/newlog/keepSentQueue/msu_data.msu.cbor
 
 # Collect with network namespace monitoring:
 msu-collect -n ns1,ns2 -o /persist/msu.cbor
+
+# Also monitor reachability and latency of the gateway and a remote host
+# (10 ICMP echo requests/s each, counters in every B section):
+msu-collect -ping 192.168.1.1 -ping 8.8.8.8 -o /persist/msu.cbor
 
 # Inspect a CBOR file:
 msu-collect -dump /persist/msu.cbor | less
@@ -127,6 +134,8 @@ shell script's behavior:
 - **B sections** run every interval (default 10s) — lightweight, high-frequency data
 - **A sections** run every 3rd interval (~30s) — heavier, less frequent data
 - **Init** runs once before the loop — static system information
+- **Ping monitors** (`-ping`) run continuously in background goroutines for the
+  whole session, including init; their counters are snapshotted into every B section
 
 Dynamic state (network interfaces, QEMU PIDs, cgroup paths) is re-discovered
 at the start of each A section.
@@ -301,6 +310,81 @@ the analyzer can compute per-vCPU usage, vhost overhead, and total VM cost by
 summing the appropriate thread times from `/proc/*/stat` (fields 14+15: utime+stime),
 which are in clock ticks — far more precise than the seconds-resolution TIME column
 from `ps`.
+
+#### ICMP Echo (Ping) Monitors
+
+For each `-ping <IPv4>` target a background goroutine sends one ICMP echo
+request every `-ping-interval` (default 100ms, i.e. 10 requests/s) and waits
+up to `-ping-timeout` (default 500ms) for the reply. The monitors run for the
+whole session, including the init phase, and their counters are snapshotted
+into every B section as a sample whose `cmd` is `ping <ip>`. The output is
+one `key value` pair per line, like `/proc/vmstat`:
+
+```
+target 10.0.0.1
+mode raw
+id 5662
+interval_us 100000
+timeout_us 500000
+tx 61
+tx_err 0
+rx 61
+rx_err 0
+lost 0
+late 0
+dup 0
+stray 0
+pending 0
+rtt_sum_us 5927
+rtt_sumsq_us 721227
+rtt_last_us 89
+rtt_min_us 32
+rtt_max_us 161
+```
+
+| Field | Meaning |
+|-------|---------|
+| `mode` | `raw` (SOCK_RAW ICMP socket, needs `CAP_NET_RAW`), `dgram` (unprivileged `IPPROTO_ICMP` datagram socket, needs the process gid inside `net.ipv4.ping_group_range`), or `none` while no socket could be opened — then the sample's `err` carries the reason and the monitor retries every 5s. |
+| `id` | ICMP echo identifier used by this monitor (distinct per target). |
+| `interval_us`, `timeout_us` | Effective `-ping-interval` / `-ping-timeout`. |
+| `tx` | Echo requests handed to the kernel. |
+| `tx_err` | Send attempts that failed (e.g. `network is unreachable`). The most recent error text since the previous sample is recorded in the sample's `err` field. |
+| `rx` | Replies received within the timeout. |
+| `rx_err` | Socket read errors. |
+| `lost` | Requests with no reply within the timeout. |
+| `late` | Replies that arrived after the timeout. Each one was already counted in `lost`. |
+| `dup` | Additional replies for an already answered request. |
+| `stray` | Replies carrying our identifier that match no outstanding request, or that came from a different source address. |
+| `pending` | Requests still waiting for a reply at sample time (instantaneous, not cumulative). |
+| `rtt_sum_us`, `rtt_sumsq_us` | Sum and sum of squares of in-time reply RTTs, in microseconds. Late replies are excluded. |
+| `rtt_last_us` | RTT of the most recent in-time reply. |
+| `rtt_min_us`, `rtt_max_us` | Smallest / largest RTT **since the previous sample**; `0` when no reply arrived in that interval. |
+
+Everything except `pending`, `rtt_last_us`, `rtt_min_us` and `rtt_max_us` is
+cumulative since the monitor started, so per-interval figures come from
+differencing consecutive samples, exactly like `/proc` counters:
+
+- requests sent in the interval: `Δtx`
+- requests lost in the interval: `Δlost` (or `Δlost − Δlate` to ignore replies that merely came late)
+- packet loss %: `Δlost / Δtx × 100`
+- mean RTT: `Δrtt_sum_us / Δrx`
+- RTT standard deviation: `sqrt(Δrtt_sumsq_us / Δrx − mean²)`
+
+A request is only known to be lost once its timeout expires, so a request sent
+at the very end of an interval is counted as lost in the next one.
+
+The `msu` analyzer can track any of these fields directly:
+
+```sh
+msu -command "ping 10.0.0.1" -field-pattern '^lost ' -section-type B msu.cbor
+```
+
+Privileges: the monitor first opens a raw ICMP socket (`CAP_NET_RAW`, always
+available as root in the EVE-OS debug container) and falls back to an
+unprivileged ICMP datagram socket. In raw mode the kernel is asked via
+`ICMP_FILTER` to deliver only echo replies, and replies are matched on
+identifier, source address and sequence number. No external `ping` binary is
+used.
 
 ## Crash Safety
 

@@ -66,6 +66,9 @@ short.
 | `-n` | (none) | Comma-separated list of network namespaces to also monitor (e.g. `-n TEST_NS_CLIENT,TEST_NS_SERVER`). |
 | `-o` | stdout | Output file path. The convention is `.msu.cbor`. |
 | `-include-env` | `filtered` | What to record in the header's `env` map: `filtered` drops keys matching `(TOKEN|KEY|SECRET|PASS|AUTH|CRED|COOK)`, `all` keeps everything, `none` omits the map. |
+| `-ping` | (none) | IPv4 address to ping continuously from a background goroutine; repeatable or comma-separated. Cumulative counters (`tx`, `rx`, `lost`, `late`, `rtt_sum_us`, …) land in every B section as cmd `ping <ip>`. |
+| `-ping-interval` | `100ms` | Gap between echo requests per `-ping` target (10/s by default). |
+| `-ping-timeout` | `500ms` | How long to wait for a reply before counting a request as `lost`. |
 | `-dump` | (none) | Read a CBOR file and print samples as human-readable text on stdout, then exit. Mutually exclusive with collection. |
 | `-version` | | Print version and exit. |
 
@@ -92,7 +95,11 @@ short.
   the named vCPU threads like `CPU 0/KVM`), AND associated kernel
   threads with their own PIDs (`vhost-<pid>`, `kvm-pit/<pid>`,
   `kvm-nx-lpage-recovery-<pid>`). Kernel-thread coverage is what makes
-  vhost CPU attribution possible.
+  vhost CPU attribution possible. With `-ping`, each target also gets a
+  `ping <ip>` sample per B section: `key value` lines with cumulative
+  `tx`/`rx`/`lost`/`late` counters and `rtt_sum_us`/`rtt_sumsq_us`, plus
+  per-interval `rtt_min_us`/`rtt_max_us` — difference consecutive samples
+  for loss and mean RTT per interval (`Δlost/Δtx`, `Δrtt_sum_us/Δrx`).
 
 For the full per-source rationale and the CBOR field-by-field schema,
 see `cmd/msu-collect/README.md`.
@@ -111,6 +118,10 @@ msu-collect -dump /tmp/msu.cbor | less
 
 # Tighter durability (flush every interval) at the cost of more disk I/O.
 msu-collect -flush-interval 1 -o /tmp/msu.cbor
+
+# Correlate packet loss / latency to the gateway with the system counters.
+msu-collect -ping 192.168.1.1 -o /tmp/msu.cbor
+msu -command "ping 192.168.1.1" -field-pattern '^lost ' -section-type B /tmp/msu.cbor
 ```
 
 ---
